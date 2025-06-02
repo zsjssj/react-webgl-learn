@@ -28,7 +28,12 @@ function createShader(gl: WebGLRenderingContext, type: number, source: string) {
   gl.shaderSource(shader!, source); // 设置着色器源代码
   gl.compileShader(shader!); // 编译着色器
   const success = gl.getShaderParameter(shader!, gl.COMPILE_STATUS); // 检查编译状态
-  return success ? shader : (console.error(gl.getShaderInfoLog(shader!)), null);
+  if (!success) {
+    console.error('Shader compile error:', gl.getShaderInfoLog(shader!));
+    gl.deleteShader(shader);
+    return null;
+  }
+  return shader;
 }
 
 function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
@@ -37,7 +42,12 @@ function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
   gl.attachShader(program!, fragmentShader); // 附加片段着色器
   gl.linkProgram(program!); // 链接程序
   const success = gl.getProgramParameter(program!, gl.LINK_STATUS); // 检查链接状态
-  return success ? program : (console.error(gl.getProgramInfoLog(program!)), null);
+  if (!success) {
+    console.error('Shader program error:', gl.getProgramInfoLog(program!));
+    return null;
+  }
+  gl.useProgram(program);
+  return program;
 }
 
 // 初始化 WebGL 上下文
@@ -52,7 +62,6 @@ function initgl(canvas: HTMLCanvasElement) {
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource); // 创建顶点着色器
   const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource); // 创建片段着色器
   const program = createProgram(gl, vertexShader!, fragmentShader!); // 创建并链接程序
-  gl.useProgram(program!); // 使用程序
   gl.viewport(0, 0, canvas.width, canvas.height);
   gl.clearColor(0.0, 0.0, 0.0, 1.0); // 设置清除颜色为黑色
   gl.clear(gl.COLOR_BUFFER_BIT); // 清除颜色缓冲区
