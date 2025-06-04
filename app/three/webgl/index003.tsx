@@ -1,5 +1,7 @@
 import { useRef, useEffect, use, type MouseEvent } from 'react';
-//绘制三角形
+//绘制线段：gl.LINES
+//绘制线条：gl.LINE_STRIP
+//绘制回路：gl.LINE_LOOP
 
 //创建顶点着色器
 const vertexShaderSource = `
@@ -12,7 +14,7 @@ const vertexShaderSource = `
   float x = a_position.x * 2.0 / screenSize.x - 1.0; 
   float y = 1.0 - (a_position.y * 2.0 / screenSize.y); 
     gl_Position = vec4(x, y, 0.0, 1.0); 
-    gl_PointSize = a_size;
+    gl_PointSize = a_size; 
     v_color = a_color; 
   }
 `;
@@ -92,7 +94,7 @@ function drawTriangle(gl: WebGLRenderingContext, program: WebGLProgram) {
   console.log('%c Triangle drawn', 'color: #00ff00;');
 }
 
-export function Gl002() {
+export function Gl003() {
   useEffect(() => {
     const { gl: gl1, program: program1 } = initgl(canvasContaner.current as HTMLCanvasElement);
     (gl = gl1), (program = program1);
@@ -124,7 +126,7 @@ export function Gl002() {
       gl.vertexAttrib4f(a_color, 1, 0, 0, 1); // 设置颜色
       gl.clearColor(0.0, 0.0, 0.0, 1.0); // 设置清除颜色为黑色
       gl.clear(gl.COLOR_BUFFER_BIT); // 清除颜色缓冲区
-      gl.drawArrays(gl.TRIANGLES, 0, pointList.length / 3); // 绘制三角形
+      gl.drawArrays(gl.LINE_LOOP, 0, pointList.length / 3); // 绘制线条
     }
   }
 

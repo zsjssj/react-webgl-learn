@@ -1,5 +1,6 @@
 import { useRef, useEffect, use, type MouseEvent } from 'react';
 // import type { MouseEvent as ReactMouseEvent } from 'react';
+//绘制点
 
 //创建顶点着色器
 const vertexShaderSource = `
