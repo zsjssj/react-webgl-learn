@@ -1,20 +1,20 @@
 import { useRef, useEffect, use, type MouseEvent } from 'react';
-//绘制线段：gl.LINES
-//绘制线条：gl.LINE_STRIP
-//绘制回路：gl.LINE_LOOP
+import { Matrix4 } from 'cuon-matrix';
+//绘制矩形
+
+//创建正视投影矩阵
+const projectionMatrix = new Matrix4().setOrtho(-1, 1, -1, 1, -1, 1); // 设置正视投影矩阵
+//创建透视投影矩阵
+const perspectiveMatrix = new Matrix4().setPerspective(45, 1, 0.1, 100); // 设置透视投影矩阵
 
 //创建顶点着色器
 const vertexShaderSource = `
-  attribute vec2 a_position;
+  attribute vec3 a_position;
   attribute vec4 a_color;
-  attribute float a_size; // 添加点大小属性
-  uniform vec2 screenSize; 
+  uniform vmat4 u_Matrix;  //正视投影矩阵
   varying vec4 v_color;
   void main() {
-  float x = a_position.x * 2.0 / screenSize.x - 1.0; 
-  float y = 1.0 - (a_position.y * 2.0 / screenSize.y); 
-    gl_Position = vec4(x, y, 0.0, 1.0); 
-    gl_PointSize = a_size; 
+    gl_Position = u_Matrix * vec4(a_position,  1.0); // 使用矩阵变换顶点位置
     v_color = a_color; 
   }
 `;
@@ -74,31 +74,50 @@ function initgl(canvas: HTMLCanvasElement) {
   return { gl: gl, program: program! };
 }
 
-//绘制三角形
+//绘制矩形
 function drawTriangle(gl: WebGLRenderingContext, program: WebGLProgram) {
   const a_positon = gl.getAttribLocation(program, 'a_position'); // 获取顶点位置属性的位置
   const a_color = gl.getAttribLocation(program, 'a_color'); // 获取颜色属性的位置
-  const a_size = gl.getAttribLocation(program, 'a_size'); // 获取点大小属性的位置
-  const screenSize = gl.getUniformLocation(program, 'screenSize'); // 获取屏幕大小的 uniform 位置
   const positonBuffer = gl.createBuffer();
+  const indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer); // 绑定索引缓冲区
   gl.bindBuffer(gl.ARRAY_BUFFER, positonBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([50.0, 50.0, 10.0, 50.0, 100.0, 20.0, 100.0, 100.0, 30.0]), gl.STATIC_DRAW);
-  gl.vertexAttribPointer(a_positon, 2, gl.FLOAT, false, 4 * 3, 0); // 指定顶点属性的格式
-  gl.vertexAttribPointer(a_size, 1, gl.FLOAT, false, 4 * 3, 4 * 2); // 指定点大小属性的格式
-  gl.uniform2f(screenSize, gl.canvas.width, gl.canvas.height); // 设置屏幕大小 uniform
+  // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([50.0, 50.0, 1, 0, 0, 50, 100, 0, 1, 0, 150, 100, 0, 0, 1, 150, 50, 1, 1, 0]), gl.STATIC_DRAW);
+  //扇形绘制矩形时候的顶点数据
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([x,y,z,r,g,b]), gl.STATIC_DRAW); //后期自行完善
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, ...]), gl.STATIC_DRAW); //后期自行完善
+  gl.vertexAttribPointer(a_positon, 2, gl.FLOAT, false, 4 * 6, 0); // 指定顶点属性的格式
+  gl.vertexAttribPointer(a_color, 3, gl.FLOAT, false, 4 * 6, 4 * 3); // 指定颜色属性的格式
   gl.enableVertexAttribArray(a_positon); // 启用顶点属性数组
-  gl.enableVertexAttribArray(a_size); // 启用尺寸属性数组
-  gl.vertexAttrib4f(a_color, 1, 0, 0, 1); // 设置颜色
+  gl.enableVertexAttribArray(a_color); // 启用颜色属性数组
   gl.clear(gl.COLOR_BUFFER_BIT); // 清除颜色缓冲区
-  gl.drawArrays(gl.POINTS, 0, 3); // 绘制三角形
+  gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); // 三角面的方式绘制立方体
+
+
+
+
+  /*
+                                                  使用正视投影矩阵进行矩形变换
+   */
+  gl.enable(gl.DEPTH_TEST); // 启用深度测试  
+  gl.enable(gl.CULL_FACE); // 启用面剔除.只能看到法线正向的面
+  // gl.cullFace(gl.BACK); // 设置剔除背面
+
+  const u_Matrix = gl.getUniformLocation(program, 'u_Matrix'); // 获取矩阵 uniform 位置
+  //创建旋转矩阵,并于视图矩阵参与计算
+  const rotationMatrix = new Matrix4().setRotate(45, 1, 1, 0); // 创建旋转矩阵，绕 x, y中间的斜线旋转 45 度
+  const viewMatrix = new Matrix4().setOrtho(-2, 2, -2, 2, -10, 10); // 设置正视投影矩阵
+  const viewMatrix1 = viewMatrix.multiply(rotationMatrix); // 将正视投影矩阵与旋转矩阵相乘
+  gl.uniformMatrix4fv(u_Matrix, false, viewMatrix.elements); // 设置矩阵 uniform
+
   console.log('%c Triangle drawn', 'color: #00ff00;');
 }
 
-export function Gl003() {
+export function Gl008() {
   useEffect(() => {
     const { gl: gl1, program: program1 } = initgl(canvasContaner.current as HTMLCanvasElement);
     (gl = gl1), (program = program1);
-    drawTriangle(gl!, program!); // 绘制三角形
+    drawTriangle(gl!, program!); // 绘制矩形
   }, []);
   let gl: WebGLRenderingContext | null = null;
   let program: WebGLProgram | null = null;
@@ -107,32 +126,11 @@ export function Gl003() {
 
   //点击事件
   const pointList: number[] = [];
-  function handleClick(event: MouseEvent<HTMLCanvasElement>, gl: WebGLRenderingContext, program: WebGLProgram) {
-    const x = event.clientX - canvasContaner.current!.offsetLeft; // 将鼠标位置转换为 WebGL 坐标系
-    const y = event.clientY - canvasContaner.current!.offsetTop; // 将鼠标位置转换为 WebGL 坐标系
-    pointList.push(x, y, 10.0);
-
-    if (pointList.length % 3 == 0) {
-      const a_positon = gl.getAttribLocation(program, 'a_position'); // 获取顶点位置属性的位置
-      const a_color = gl.getAttribLocation(program, 'a_color'); // 获取颜色属性的位置
-      const a_size = gl.getAttribLocation(program, 'a_size'); // 获取点大小属性的位置
-      const screenSize = gl.getUniformLocation(program, 'screenSize'); // 获取屏幕大小的 uniform 位置
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pointList), gl.STATIC_DRAW);
-      gl.vertexAttribPointer(a_positon, 2, gl.FLOAT, false, 4 * 3, 0); // 指定顶点属性的格式
-      gl.vertexAttribPointer(a_size, 1, gl.FLOAT, false, 4 * 3, 4 * 2); // 指定点大小属性的格式
-      gl.uniform2f(screenSize, gl.canvas.width, gl.canvas.height); // 设置屏幕大小 uniform
-      gl.enableVertexAttribArray(a_positon); // 启用顶点属性数组
-      gl.enableVertexAttribArray(a_size); // 启用尺寸属性数组
-      gl.vertexAttrib4f(a_color, 1, 0, 0, 1); // 设置颜色
-      gl.clearColor(0.0, 0.0, 0.0, 1.0); // 设置清除颜色为黑色
-      gl.clear(gl.COLOR_BUFFER_BIT); // 清除颜色缓冲区
-      gl.drawArrays(gl.LINE_LOOP, 0, pointList.length / 3); // 绘制线条
-    }
-  }
+  function handleClick(event: MouseEvent<HTMLCanvasElement>, gl: WebGLRenderingContext, program: WebGLProgram) {}
 
   return (
     <div ref={threeContainer} id="three-container" className="bg-amber-100 relative w-screen h-screen flex flex-col justify-center items-center">
-      <span className="mb-2">webgl002-线</span>
+      <span className="mb-2">webgl002-矩形</span>
       <canvas ref={canvasContaner} id="three-canvas" className=" w-9/10  h-9/10" onMouseDown={(event) => handleClick(event, gl!, program!)}></canvas>
     </div>
   );

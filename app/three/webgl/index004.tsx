@@ -132,7 +132,7 @@ export function Gl004() {
 
   return (
     <div ref={threeContainer} id="three-container" className="bg-amber-100 relative w-screen h-screen flex flex-col justify-center items-center">
-      <span className="mb-2">webgl002-三角形</span>
+      <span className="mb-2">webgl002-矩形</span>
       <canvas ref={canvasContaner} id="three-canvas" className=" w-9/10  h-9/10" onMouseDown={(event) => handleClick(event, gl!, program!)}></canvas>
     </div>
   );
